@@ -42,6 +42,9 @@ class ElfParser(ParserBase) :
 
         idx = self.section_idx['.symtab']
 
+        if != idx:
+            return None
+            
         for entry in self.parser.header.section_headers[idx].body.entries :
             functionInfo[entry.name] = entry.value
 
