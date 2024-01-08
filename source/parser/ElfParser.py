@@ -5,6 +5,23 @@ from .base import ParserBase
 
 from kaitaistruct import KaitaiStream
 
+class Instruction:
+    def __init__(self, address, size, mnemonic, op_str):
+        self.address = address
+        self.size = size
+        self.mnemonic = mnemonic
+        self.op_str = op_str
+
+    def is_branch(self):
+        return self.mnemonic.startswith('j') or self.mnemonic == 'call'
+
+class BasicBlock:
+    def __init__(self, start_address):
+        self.start_address = start_address
+        self.end_address = None
+        self.instructions = []
+        self.predecessors = []
+        self.successors = []
 
 
 class ElfParser(ParserBase) :
