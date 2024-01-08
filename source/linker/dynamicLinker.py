@@ -27,7 +27,7 @@ class dynamicLinker:
                 continue
 
             if phdr.vaddr <= addr and addr <= (phdr.vaddr + phdr.memsz) :
-                if (phdr.flags64 & EXCUTABLE_FLAG) == True :
+                if (phdr.flags32 & EXCUTABLE_FLAG) == True :
                     return True
         return False
     

@@ -17,14 +17,14 @@ class ElfParser(ParserBase) :
         # section start addr, section end addr
         self.section_addr: Tuple[int, int] = tuple()
 
+        self._io = open(filename, 'rb')
         self.Kstream = KaitaiStream(open(filename, 'rb'))
         self.parser = Elf(self.Kstream)
 
         self._ParseSectionInfo()
 
     def __del__(self) :
-        pass
-        #self.Kstream.close()
+        self._io.close()
 
     def _ParseSectionInfo(self):
         
