@@ -19,7 +19,7 @@ class ElfParser(ParserBase) :
 
         self.Kstream = KaitaiStream(open(filename, 'rb'))
         self.parser = Elf(self.Kstream)
-            
+
         self._ParseSectionInfo()
 
     def __del__(self) :
@@ -46,6 +46,23 @@ class ElfParser(ParserBase) :
             functionInfo[entry.name] = entry.value
 
         return functionInfo
+
+    def resolve_dependencies(self) -> list[str] :
+        dependencies = []
+        
+        dynidx = self.section_idx[".dynamic"]
+        stridx = self,section_idx[".dynstr"]
+
+        for p in self.parser.header.section_headers[idx].body.entries :
+            if p.tag == 0x1: #! tag == 0x1 : Needed tag
+                str_offset = p.value_or_ptr
+                length = 0
+                for st in self.parser.header.section_headers[stridx].body.entries :
+                    if length == str_offset:
+                        dependencies.append(st)
+                        break
+                    length += len(st) + 1
+        return dependencies
         
                 
     
