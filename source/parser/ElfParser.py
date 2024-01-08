@@ -19,7 +19,7 @@ class ElfParser(ParserBase) :
 
         self.Kstream = KaitaiStream(open(filename, 'rb'))
         self.parser = Elf(self.Kstream)
-
+            
         self._ParseSectionInfo()
 
     def __del__(self) :
