@@ -1,7 +1,5 @@
 from typing import Dict
 from abc import ABC, abstractmethod
-
-
 class ParserBase(ABC):
 
     def __init__(self) :
