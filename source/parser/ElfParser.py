@@ -1,7 +1,7 @@
 from typing import Dict, Tuple
 
-from parser.resources.elf import Elf
-from parser.base import ParserBase
+from .resources.elf import Elf
+from .base import ParserBase
 
 from kaitaistruct import KaitaiStream
 
@@ -17,7 +17,6 @@ class BasicBlock:
 
 
 class ElfParser(ParserBase) :
-    
 
     def __init__(self, filename: str) :
 
@@ -46,8 +45,6 @@ class ElfParser(ParserBase) :
         self.section_addr = section_addr
 
 
-    
-
     def FunctionList(self) -> dict :
         functionInfo : Dict[str] = dict()
 
@@ -57,8 +54,9 @@ class ElfParser(ParserBase) :
             return None
             
         for entry in self.parser.header.section_headers[idx].body.entries :
+            if entry.name is None:
+                continue
             functionInfo[entry.name] = entry.value
-
         return functionInfo
 
     def resolve_dependencies(self) -> list[str] :
