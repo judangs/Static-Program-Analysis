@@ -13,8 +13,8 @@ sys.path.append(parent_dir)
 from source.parser.resources.elf import Elf
 
 class DisassemblerBase(ABC):
+    
     DisasmList: List[int] = list()
-
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
 
@@ -25,6 +25,10 @@ class DisassemblerBase(ABC):
         self.section_idx = section_idx
         self.section_addr = section_addr
         
+    @abstractmethod
+    def Arch(self):
+        ...
+
     @abstractmethod
     def BranchAddr(self, insn: CsInsn):
         ...
@@ -44,16 +48,6 @@ class DisassemblerBase(ABC):
     @classmethod
     def AddDisasList(cls, address: int):
         cls.DisasmList.append(address)
-
-    @classmethod
-    def linearSweepDisasm(cls, binary, start_address, end_address):
-        md = Cs(CS_ARCH_X86, CS_MODE_64)
-        md.detail = True
-
-        for insn in md.disasm(binary, start_address):
-            if insn.address >= end_address:
-                break
-            print("0x%x:\t%s\t%s" % (insn.address, insn.mnemonic, insn.op_str))
 
     @classmethod
     def isJump(cls, insn: CsInsn):
@@ -81,6 +75,10 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int, size: int)
     while disasm.ProgramCounter >= 0x0:
         insn = disasm.ReadLine()
         print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
+
+        disasm.ProgramCounter += insn.size
+        size += insn.size
+
         #instruction is invalid or ret
         if disasm.isInvalid(insn) or disasm.isRet(insn):
             disasm.visitBranch.add(branch_start_addr)
@@ -92,9 +90,6 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int, size: int)
             else:
                 disasm.ProgramCounter = -0x1
                 return
-
-        disasm.ProgramCounter += insn.size
-        size += insn.size
 
         if disasm.isCall(insn):
             branch_addr = disasm.BranchAddr(insn)
@@ -115,6 +110,40 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int, size: int)
                 size = 0x0
 
 
-            
 
+def LinearSweepDisasm(disasm: DisassemblerBase, branch_start_addr: int, size: int):
+
+    if disasm.isVisit(branch_start_addr):
+        return
+
+    disasm.ProgramCounter = branch_start_addr
+    while disasm.ProgramCounter > 0x0:
+        insn = disasm.ReadLine()
+        print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
+
+        disasm.ProgramCounter += insn.size
+        size += insn.size
         
+        #instruction is invalid or ret
+        if disasm.isInvalid(insn) or disasm.isRet(insn):
+            disasm.visitBranch.add(branch_start_addr)
+            print()
+
+            if disasm.retStack:
+                disasm.ProgramCounter = disasm.retStack.popleft()
+                return
+            else:
+                disasm.ProgramCounter = -0x1
+                return
+
+        if disasm.isCall(insn):
+            branch_addr = disasm.BranchAddr(insn)
+
+            # (ex) call address type != 0x1000
+            if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
+                continue
+
+            if disasm.isVisit(branch_addr) == False:
+                disasm.visitBranch.add(branch_addr)
+                disasm.retStack.append(branch_addr)
+
