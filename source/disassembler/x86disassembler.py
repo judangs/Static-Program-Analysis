@@ -1,18 +1,57 @@
 from .base import DisassemblerBase
 
-from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OPT_ON
+from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OPT_ON, CsInsn
 from capstone.x86 import *
+
+START = 0x0
+END = 0x1
 
 class Disassembler(DisassemblerBase):
 
-    def __init__(self):
+    def __init__(self, _io, parser, section_idx, section_addr):
+        super().__init__(parser, section_idx, section_addr)
+
         self.md = Cs(CS_ARCH_X86, CS_MODE_32)
         self.md.detail = CS_OPT_ON
 
+        self._io = _io
 
-    def ReadLine(self, code: bytearray, addr: int):
-        insn = self.md.disasm(code, addr, count=0x1).__next__()
+    def ReadByte(self, offset: int, length: int)->bytearray:
+        self._io.seek(offset, 0)
+        return self._io.read(length)
+
+    def AddrSectionInfo(self, addr: int):
+        for idx, section in enumerate(self.section_addr):
+            if section[START] <= addr and addr <= section[END]:
+                offset = addr - section[START]
+                return idx, offset
+
+        raise Exception('Invalid Address')
+
+    # Find the distance of the current address from the section_entry.
+    def DistanceOffset(self, addr):
+        idx, offset = self.AddrSectionInfo(addr)
+        return idx, (self.parser.header.section_headers[idx].ofs_body + offset)
+
+    def GetCode(self, offset: int)-> bytearray:
+        #exception:  offset + 0x10 => executable X
+        return self.ReadByte(offset, 0x10)
+
+    def ReadLine(self):
+        # idx : section idx, offset : code offset
+        idx, offset = self.DistanceOffset(self.ProgramCounter)
+        code = self.GetCode(offset)
+        insn = self.md.disasm(code, self.ProgramCounter, count=0x1).__next__()
+
+    def ReadLines(self, code: bytearray, addr: int, count: int):
+        insn = self.md.disasm(code, addr, count=count).__next__()
         return insn
+
+    def BranchAddr(self, insn: CsInsn):
+        for operand in insn.operands :
+            if operand.type == X86_OP_IMM :
+                return operand.imm
+        return 0
 
         # debug
         #print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
