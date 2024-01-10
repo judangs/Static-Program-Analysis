@@ -7,8 +7,7 @@ from typing import ParamSpecArgs
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 
 def main(arg: ParamSpecArgs):
-    parser = ElfParser(arg.file)
-    disasm = Disassembler(parser._io, parser.parser, parser.section_idx, parser.section_addr)
+    Disassembler(ElfParser(arg.file))
    
 
 if __name__ == "__main__":

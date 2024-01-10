@@ -17,7 +17,7 @@ class DisassemblerBase(ABC):
 
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
-
+    
     ProgramCounter:int = 0x0
 
     def __init__(self, parser:Elf, section_idx: tuple[int, int], section_addr: dict):
@@ -72,49 +72,49 @@ class DisassemblerBase(ABC):
         return insn.group(CS_GRP_INVALID)
     
     # first Input = function start addr
-def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int, size: int) :
+    def RecursiveDisasm(self, branch_start_addr: int, size: int) :
 
-    if disasm.isVisit(branch_start_addr):
-        return
+        if self.isVisit(branch_start_addr):
+            return
 
-    disasm.ProgramCounter = branch_start_addr
-    while disasm.ProgramCounter >= 0x0:
-        insn = disasm.ReadLine()
-        print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
-        #instruction is invalid or ret
-        if disasm.isInvalid(insn) or disasm.isRet(insn):
-            disasm.visitBranch.add(branch_start_addr)
-            print()
-
-            if disasm.retStack:
-                disasm.ProgramCounter = disasm.retStack.pop()
-                return
-            else:
-                disasm.ProgramCounter = -0x1
-                return
-
-        disasm.ProgramCounter += insn.size
-        size += insn.size
-
-        if disasm.isCall(insn):
-            branch_addr = disasm.BranchAddr(insn)
-
-            if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
-                continue
-
-
-            if disasm.isVisit(branch_addr) == False:
-                disasm.visitBranch.add(branch_addr)
-
-                disasm.retStack.append(disasm.ProgramCounter)
-                disasm.ProgramCounter = branch_addr
+        self.ProgramCounter = branch_start_addr
+        while self.ProgramCounter >= 0x0:
+            insn = self.ReadLine()
+            print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
+            #instruction is invalid or ret
+            if self.isInvalid(insn) or self.isRet(insn):
+                self.visitBranch.add(branch_start_addr)
                 print()
-                RecursiveDisasm(disasm, disasm.ProgramCounter, 0x0)
 
-                branch_start_addr = disasm.ProgramCounter
-                size = 0x0
+                if self.retStack:
+                    self.ProgramCounter = self.retStack.pop()
+                    return
+                else:
+                    self.ProgramCounter = -0x1
+                    return
 
+            self.ProgramCounter += insn.size
+            size += insn.size
+
+            if self.isCall(insn):
+                branch_addr = self.BranchAddr(insn)
+
+                if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
+                    continue
+
+
+                if self.isVisit(branch_addr) == False:
+                    self.visitBranch.add(branch_addr)
+
+                    self.retStack.append(self.ProgramCounter)
+                    self.ProgramCounter = branch_addr
+                    print()
+                    self.RecursiveDisasm(self, self.ProgramCounter, 0x0)
+
+                    branch_start_addr = self.ProgramCounter
+                    size = 0x0
+
+
+                
 
             
-
-        

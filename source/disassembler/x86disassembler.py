@@ -1,4 +1,5 @@
 from disassembler.base import DisassemblerBase
+from source.parser import ElfParser
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OPT_ON, CsInsn
 from capstone.x86 import *
@@ -8,13 +9,13 @@ END = 0x1
 
 class Disassembler(DisassemblerBase):
 
-    def __init__(self, _io, parser, section_idx, section_addr):
-        super().__init__(parser, section_idx, section_addr)
+    def __init__(self, elfparser:ElfParser):
+        super().__init__(elfparser.parser, elfparser.section_idx, elfparser.section_addr)
 
         self.md = Cs(CS_ARCH_X86, CS_MODE_32)
         self.md.detail = CS_OPT_ON
 
-        self._io = _io
+        self._io = elfparser._io
 
     def ReadByte(self, offset: int, length: int)->bytearray:
         self._io.seek(offset, 0)
