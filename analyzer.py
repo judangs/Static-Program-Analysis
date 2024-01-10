@@ -1,6 +1,6 @@
 #from source.linker import dynamicLinker
-from source import parser
-from source import disassembler
+from source.parser import ElfParser
+from source.disassembler import Disassembler
 
 from argparse import ArgumentParser
 from typing import ParamSpecArgs
