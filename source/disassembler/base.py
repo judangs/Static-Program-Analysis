@@ -1,4 +1,4 @@
-from typing import List, Deque, Set
+from typing import List, Deque, Set, Dict, Any
 from abc import ABC, abstractmethod
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64, CS_GRP_JUMP, CS_GRP_RET, CS_GRP_CALL, CS_GRP_INVALID, CsInsn, CS_OP_IMM, CS_OP_INVALID
 from block.function import Function
@@ -17,6 +17,7 @@ class DisassemblerBase(ABC):
 
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
+    disasFunc : Dict[str, Function]
 
     ProgramCounter:int = 0x0
 
@@ -24,6 +25,7 @@ class DisassemblerBase(ABC):
         self.parser = parser
         self.section_idx = section_idx
         self.section_addr = section_addr
+        self.RecursiveDisasm(parser.header.entry_point,0)
         
     @abstractmethod
     def BranchAddr(self, insn: CsInsn):
@@ -71,16 +73,20 @@ class DisassemblerBase(ABC):
     def isInvalid(cls, insn: CsInsn):
         return insn.group(CS_GRP_INVALID)
     
+    @classmethod
+    def addNewFunction(cls, insn: CsInsn):
+        pass
+    
     # first Input = function start addr
-    def RecursiveDisasm(self, branch_start_addr: int, size: int) :
-
+    def RecursiveDisasm(self, branch_start_addr: int, size: int, function_name: str = "start") :
+        
         if self.isVisit(branch_start_addr):
             return
 
         self.ProgramCounter = branch_start_addr
         while self.ProgramCounter >= 0x0:
             insn = self.ReadLine()
-            print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
+            print("%s : 0x%x:\t%s\t%s" %(function_name, insn.address, insn.mnemonic, insn.op_str))
             #instruction is invalid or ret
             if self.isInvalid(insn) or self.isRet(insn):
                 self.visitBranch.add(branch_start_addr)
@@ -104,12 +110,14 @@ class DisassemblerBase(ABC):
 
 
                 if self.isVisit(branch_addr) == False:
+                    function_name = "sub_" + hex(branch_addr)[2:]
+                    print(function_name)
                     self.visitBranch.add(branch_addr)
 
                     self.retStack.append(self.ProgramCounter)
                     self.ProgramCounter = branch_addr
                     print()
-                    self.RecursiveDisasm(self, self.ProgramCounter, 0x0)
+                    self.RecursiveDisasm( self.ProgramCounter, 0x0,function_name)
 
                     branch_start_addr = self.ProgramCounter
                     size = 0x0

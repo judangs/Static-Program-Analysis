@@ -41,6 +41,7 @@ class Disassembler(DisassemblerBase):
         idx, offset = self.DistanceOffset(self.ProgramCounter)
         code = self.GetCode(offset)
         insn = self.md.disasm(code, self.ProgramCounter, count=0x1).__next__()
+        return insn
 
     def ReadLines(self, code: bytearray, addr: int, count: int):
         insn = self.md.disasm(code, addr, count=count).__next__()
