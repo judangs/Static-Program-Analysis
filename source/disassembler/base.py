@@ -1,7 +1,7 @@
 from typing import List, Deque, Set
 from abc import ABC, abstractmethod
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64, CS_GRP_JUMP, CS_GRP_RET, CS_GRP_CALL, CS_GRP_INVALID, CsInsn, CS_OP_IMM, CS_OP_INVALID
-
+from block.function import Function
 from collections import deque
 
 import sys
@@ -17,7 +17,7 @@ class DisassemblerBase(ABC):
 
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
-    
+
     ProgramCounter:int = 0x0
 
     def __init__(self, parser:Elf, section_idx: tuple[int, int], section_addr: dict):
@@ -113,8 +113,3 @@ class DisassemblerBase(ABC):
 
                     branch_start_addr = self.ProgramCounter
                     size = 0x0
-
-
-                
-
-            
