@@ -13,8 +13,8 @@ sys.path.append(parent_dir)
 from source.parser.resources.elf import Elf
 
 class DisassemblerBase(ABC):
-    
     DisasmList: List[int] = list()
+
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
     disasFunc : Dict[str, Function]
@@ -27,10 +27,6 @@ class DisassemblerBase(ABC):
         self.section_addr = section_addr
         self.RecursiveDisasm(parser.header.entry_point,0)
         
-    @abstractmethod
-    def Arch(self):
-        ...
-
     @abstractmethod
     def BranchAddr(self, insn: CsInsn):
         ...
@@ -50,6 +46,16 @@ class DisassemblerBase(ABC):
     @classmethod
     def AddDisasList(cls, address: int):
         cls.DisasmList.append(address)
+
+    @classmethod
+    def linearSweepDisasm(cls, binary, start_address, end_address):
+        md = Cs(CS_ARCH_X86, CS_MODE_64)
+        md.detail = True
+
+        for insn in md.disasm(binary, start_address):
+            if insn.address >= end_address:
+                break
+            print("0x%x:\t%s\t%s" % (insn.address, insn.mnemonic, insn.op_str))
 
     @classmethod
     def isJump(cls, insn: CsInsn):
