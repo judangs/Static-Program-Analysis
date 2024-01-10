@@ -1,7 +1,7 @@
 from typing import List, Deque, Set, Dict, Any
 from abc import ABC, abstractmethod
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64, CS_GRP_JUMP, CS_GRP_RET, CS_GRP_CALL, CS_GRP_INVALID, CsInsn, CS_OP_IMM, CS_OP_INVALID
-from block.function import Function
+from source.block.function import Function
 from collections import deque
 
 import sys

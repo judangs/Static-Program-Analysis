@@ -1,4 +1,4 @@
-from disassembler.base import DisassemblerBase
+from source.disassembler.base import DisassemblerBase
 from source.parser import ElfParser
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OPT_ON, CsInsn
 from capstone.x86 import *
