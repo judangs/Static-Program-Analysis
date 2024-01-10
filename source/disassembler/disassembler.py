@@ -3,8 +3,18 @@ from source.parser import ElfParser
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OPT_ON, CsInsn
 from capstone.x86 import *
 
+import sys
+from os.path import dirname, realpath
+
+parent_dir = dirname(dirname(realpath(__file__)))
+sys.path.append(parent_dir)
+
+from source.parser.resources.elf import Elf
+
 START = 0x0
 END = 0x1
+
+EXCUTABLE_FLAG = 0x1
 
 class Disassembler(DisassemblerBase):
 
@@ -18,6 +28,32 @@ class Disassembler(DisassemblerBase):
     def ReadByte(self, offset: int, length: int)->bytearray:
         self._io.seek(offset, 0)
         return self._io.read(length)
+    
+    def Arch(self):
+        return self.parser.header.machine
+
+    def IsExecutableAddr32(self, addr: int) -> bool:
+        for phdr in self.parser.header.program_headers :
+            if phdr.type != Elf.PhType.load :
+                continue
+
+            if phdr.vaddr <= addr and addr <= (phdr.vaddr + phdr.memsz) :
+                if (phdr.flags32 & EXCUTABLE_FLAG) == True :
+                    return True
+        return False
+
+    def IsExecutableAddr(self, addr: int) -> bool:
+        if self.Arch() == Elf.Machine.x86:
+            return self.IsExecutableAddr32(addr)
+        
+        for phdr in self.parser.header.program_headers :
+            if phdr.type != Elf.PhType.load :
+                continue
+
+            if phdr.vaddr <= addr and addr <= (phdr.vaddr + phdr.memsz) :
+                if (phdr.flags64 & EXCUTABLE_FLAG) == True :
+                    return True
+        return False
 
     def AddrSectionInfo(self, addr: int):
         for idx, section in enumerate(self.section_addr):
@@ -52,10 +88,6 @@ class Disassembler(DisassemblerBase):
             if operand.type == X86_OP_IMM :
                 return operand.imm
         return 0
-
-        # debug
-        #print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
-
 
     @classmethod
     def isVisit(cls, addr: int):
