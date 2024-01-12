@@ -1,7 +1,8 @@
-from source.disassembler.base import DisassemblerBase
-from source.parser import ElfParser
-from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OPT_ON, CsInsn
-from capstone.x86 import *
+from disassembler.base import DisassemblerBase
+
+from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_MODE_64, CS_OPT_ON, CS_OP_IMM, CsInsn
+#from capstone.x86 import *
+
 
 import sys
 from os.path import dirname, realpath
@@ -18,19 +19,23 @@ EXCUTABLE_FLAG = 0x1
 
 class Disassembler(DisassemblerBase):
 
-    def __init__(self, elfparser:ElfParser):
-        self.md = Cs(CS_ARCH_X86, CS_MODE_32)
+    def __init__(self, _io, parser, section_idx, section_addr):
+        super().__init__(parser, section_idx, section_addr)
+
+        if self.parser.header.machine == Elf.Machine.x86_64:
+            self.md = Cs(CS_ARCH_X86, CS_MODE_64)
+        else :
+            self.md = Cs(CS_ARCH_X86, CS_MODE_32)
+        
         self.md.detail = CS_OPT_ON
 
-        self._io = elfparser._io
-        super().__init__(elfparser.parser, elfparser.section_idx, elfparser.section_addr)
+        self._io = _io
+
 
     def ReadByte(self, offset: int, length: int)->bytearray:
         self._io.seek(offset, 0)
         return self._io.read(length)
     
-    def Arch(self):
-        return self.parser.header.machine
 
     def IsExecutableAddr32(self, addr: int) -> bool:
         for phdr in self.parser.header.program_headers :
@@ -43,7 +48,7 @@ class Disassembler(DisassemblerBase):
         return False
 
     def IsExecutableAddr(self, addr: int) -> bool:
-        if self.Arch() == Elf.Machine.x86:
+        if self.md._mode == CS_MODE_32:
             return self.IsExecutableAddr32(addr)
         
         for phdr in self.parser.header.program_headers :
@@ -80,14 +85,31 @@ class Disassembler(DisassemblerBase):
         return insn
 
     def ReadLines(self, code: bytearray, addr: int, count: int):
-        insn = self.md.disasm(code, addr, count=count).__next__()
+        insn = self.md.disasm(code, addr, count=count)
         return insn
+
+    def IsPltFunc(self, address:int):
+        idx = self.section_idx['.plt']
+        plt_entry = self.parser.header.section_headers[idx]
+        plt_start = plt_entry.addr
+        plt_end = plt_start + plt_entry.len_body
+
+        return plt_start <= address and address <= plt_end
+        
 
     def BranchAddr(self, insn: CsInsn):
         for operand in insn.operands :
-            if operand.type == X86_OP_IMM :
-                return operand.imm
+            if operand.type == CS_OP_IMM :
+                if self.IsPltFunc(operand.imm) == False:
+                    return operand.imm
         return 0
+
+    def FindBlockEntry(self, address: int):
+        for basicblock in self.basicblocks:
+            if basicblock.entry == address:
+                return basicblock
+        return None
+    
 
     @classmethod
     def isVisit(cls, addr: int):
