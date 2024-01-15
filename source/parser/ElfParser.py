@@ -75,17 +75,6 @@ class ElfParser(ParserBase) :
                         break
                     length += len(st) + 1
         return dependencies
-        
-# #추가                
-# ElfParser.build_control_flow_graph()
-
-# #CFG 출력.. 추가
-# for block in ElfParser.basic_blocks:
-#     print(f"Basic Block from {block.start_address} to {block.end_address}") #시작, 끝 주소
-#     print("Succesors:", [succ.start_address for succ in block.succesors]) #후임자
-#     print("Predecessors:", [pred.start_address for pred in block.predecessors]) #전임자
-#     print()
-        
 
 
 
