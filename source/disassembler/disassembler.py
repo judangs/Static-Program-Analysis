@@ -31,6 +31,18 @@ class Disassembler(DisassemblerBase):
 
         self._io = _io
 
+    def getLibcName(self): #수정중..
+        dynamic_section idx = self.sectioni_idx.get('.dynamic', None)
+        if dynamic_section_idx is None:
+            return None
+
+        dynamic_section = self.parser.header.section_headers[dynamic_section_idx]
+        dynamic_data = self.ReadByte(dynamic_section.offset, dynamic_section.size]
+
+        libc_name = self.extractLibcNameFromDynamicSection(dynamic_data)
+        return libc_name # 수정중...
+
+
 
     def ReadByte(self, offset: int, length: int)->bytearray:
         self._io.seek(offset, 0)
