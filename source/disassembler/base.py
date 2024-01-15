@@ -106,7 +106,7 @@ def CanReachableAddress(disasm: DisassemblerBase, address: int) :
     visit: List[int] = list()
     
     for basicblock in disasm.basicblocks:
-        if basicblock.entry <= address and address <= basicblock.entry + basicblock.size:
+        if basicblock.entry <= address <= basicblock.entry + basicblock.size:
             return True
         current = basicblock
         visit.append(current.entry)
@@ -114,7 +114,7 @@ def CanReachableAddress(disasm: DisassemblerBase, address: int) :
         # not empty()
         while current.successors:
             for next in current.successors:
-                if next.entry <= address and address <= next.entry + next.size:
+                if next.entry <= address <= next.entry + next.size:
                     return True
                 else:
                     if next.entry not in visit:
