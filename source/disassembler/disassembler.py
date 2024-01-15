@@ -115,3 +115,8 @@ class Disassembler(DisassemblerBase):
             if addr == visit:
                 return True
         return False
+
+    def printBlock(self):
+        for k in self.basicblocks:
+            k.PrintCode()
+            print()

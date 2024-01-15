@@ -3,8 +3,8 @@ from parser.ElfParser import ElfParser
 from linker.dynamicLinker import resolve_dynamic_symbol
 class BasicBlock:
     def __init__(self, entry):
-        self.name : str
         self.entry = entry
+        self.name = "sub_" + hex(self.entry)[2:]
         self.size = 0x0
         self.instructions:list[CsInsn] = list()
         self.next:list[int] = list()
@@ -29,9 +29,12 @@ class BasicBlock:
         self.size += insn.size
         self.instructions.append(insn)
 
-    def PrintCode(self, parser : ElfParser):
+    def PrintCode(self):
         for instruction in self.instructions:
-            print("0x%x:\t%s\t%s" %(instruction.address, instruction.mnemonic, instruction.op_str))
+            if hasattr(instruction,'plt'):
+                print("%s : 0x%x:\t%s\tplt@%s" %(self.name, instruction.address, instruction.mnemonic, instruction.plt))
+            else:
+                print("%s : 0x%x:\t%s\t%s" %(self.name, instruction.address, instruction.mnemonic, instruction.op_str))
 
     def AddFlowAddr(self, address):
         self.next.append(address)

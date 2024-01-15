@@ -222,7 +222,6 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
     while disasm.ProgramCounter >= PC_INVALID:
         insn = disasm.ReadLine()
         Currentbb.AddInsn(insn)
-
         disasm.ProgramCounter += insn.size
 
         #instruction is invalid or ret
@@ -246,7 +245,8 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
                     gto = disasm.getGlobalOffsetTable(branch_addr)
                     disasm.pltSymbols[branch_addr] = resolve_dynamic_symbol(disasm.parser,gto)
                     print(resolve_dynamic_symbol(disasm.parser,gto))
-                #setattr(insn,'op_str',disasm.pltSymbols[branch_addr])
+                setattr(insn,'plt',disasm.pltSymbols[branch_addr])
+                continue
                 
             if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
                 continue

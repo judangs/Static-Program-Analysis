@@ -18,8 +18,8 @@ def main(arg: ParamSpecArgs):
             disassembler.RecursiveDisasm(disasm, address)
             #disassembler.LinearSweepDisasm(disasm, address)
 
-    disassembler.BuildControlFlow(disasm)
-
+    disassembler.BuildControlFlow(disasm)  
+    disasm.printBlock()
 
     print(disassembler.CanReachable(disasm, function['_start'], 0x40120e)) #None
     print(disassembler.CanReachable(disasm, function['main'], 0x40120e)) #True
