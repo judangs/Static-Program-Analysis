@@ -1,11 +1,12 @@
 from typing import List, Deque, Set
 from abc import ABC, abstractmethod
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64, CS_GRP_JUMP, CS_GRP_RET, CS_GRP_CALL, CS_GRP_INVALID, CsInsn, CS_OP_IMM, CS_OP_INVALID
-
+from source.linker.dynamicLinker import resolve_dynamic_symbol
 from collections import deque
-
+from source.parser.ElfParser import ElfParser
 import sys
 from os.path import dirname, realpath
+import struct
 
 parent_dir = dirname(dirname(realpath(__file__)))
 sys.path.append(parent_dir)
@@ -20,15 +21,17 @@ class DisassemblerBase(ABC):
     DisasmList: List[int] = list()
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
+    pltSymbols : dict[int,str] = {}
     basicblocks:List[BasicBlock] = list()
     ControlFlow: List[List[int]] = list()
 
     ProgramCounter:int = PC_INVALID
 
-    def __init__(self, parser:Elf, section_idx: tuple[int, int], section_addr: dict):
+    def __init__(self, parser:ElfParser, section_idx: tuple[int, int], section_addr: dict, io):
         self.parser = parser
         self.section_idx = section_idx
         self.section_addr = section_addr
+        self.io = io
         
 
     @abstractmethod
@@ -72,8 +75,33 @@ class DisassemblerBase(ABC):
     def isInvalid(cls, insn: CsInsn):
         return insn.group(CS_GRP_INVALID)
     
-
-
+    def getGlobalOffsetTable(self, addr : int) -> str:
+        self.retStack.append(self.ProgramCounter)
+        self.ProgramCounter = addr
+        
+        insn = self.ReadLine()
+        while insn.mnemonic != "bnd jmp":
+            self.ProgramCounter += insn.size
+            insn = self.ReadLine()
+            
+        rip = insn.address + insn.size
+        jmp_target = rip + int(insn.op_str.split(' ')[-1][:-1],16)
+        idx = self.parser.section_idx[".got.plt"]
+        
+        got_va_offset = self.parser.parser.header.section_headers[idx].addr - self.parser.parser.header.section_headers[idx].ofs_body
+        
+        self.io.seek(jmp_target - got_va_offset,0)
+        pack = struct.unpack('I',self.io.read(0x4))[0]
+        self.ProgramCounter =  pack
+        
+        while insn.mnemonic != "push" : 
+            insn = self.ReadLine()
+            self.ProgramCounter += insn.size
+        global_offset = int(insn.op_str,16)
+        self.ProgramCounter = self.retStack.pop()
+        return global_offset
+        
+        
 def BuildControlFlow(disasm:DisassemblerBase) :
     
     NodeList: Deque[BasicBlock] = deque()
@@ -212,8 +240,14 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
 
         # instruction is call or jmp
         if disasm.isCall(insn) or disasm.isJump(insn):
-            branch_addr = disasm.BranchAddr(insn)
-
+            isPLT, branch_addr = disasm.BranchAddr(insn)
+            if isPLT:
+                if not branch_addr in disasm.pltSymbols: 
+                    gto = disasm.getGlobalOffsetTable(branch_addr)
+                    disasm.pltSymbols[branch_addr] = resolve_dynamic_symbol(disasm.parser,gto)
+                    print(resolve_dynamic_symbol(disasm.parser,gto))
+                #setattr(insn,'op_str',disasm.pltSymbols[branch_addr])
+                
             if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
                 continue
 
@@ -272,7 +306,7 @@ def LinearSweepDisasm(disasm: DisassemblerBase, branch_start_addr: int):
                 return
 
         if disasm.isCall(insn) or disasm.isJump(insn):
-            branch_addr = disasm.BranchAddr(insn)
+            _, branch_addr = disasm.BranchAddr(insn)
 
             # (ex) call address type != 0x1000
             if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:

@@ -1,9 +1,10 @@
 from source.parser import ElfParser
+from capstone import *
 
 def resolve_dynamic_symbol(parser : ElfParser, GTO : int) -> str:
     relaidx = parser.section_idx['.rela.plt']
     symidx = parser.section_idx['.dynsym']
-    stridx = parser.section_idx['dynstr']
+    stridx = parser.section_idx['.dynstr']
     
     if not relaidx:
         return None
@@ -14,7 +15,7 @@ def resolve_dynamic_symbol(parser : ElfParser, GTO : int) -> str:
 
         sym = parser.parser.header.section_headers[symidx].body.entries[symbol_index]
         string_index = sym.ofs_name
-        str_entries = parser.parser.headersection_headers[stridx].body.entries
+        str_entries = parser.parser.header.section_headers[stridx].body.entries
         
         i = 0
         for st in str_entries:

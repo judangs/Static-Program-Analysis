@@ -20,9 +20,9 @@ EXCUTABLE_FLAG = 0x1
 class Disassembler(DisassemblerBase):
 
     def __init__(self, _io, parser, section_idx, section_addr):
-        super().__init__(parser, section_idx, section_addr)
+        super().__init__(parser, section_idx, section_addr, _io)
 
-        if self.parser.header.machine == Elf.Machine.x86_64:
+        if self.parser.parser.header.machine == Elf.Machine.x86_64:
             self.md = Cs(CS_ARCH_X86, CS_MODE_64)
         else :
             self.md = Cs(CS_ARCH_X86, CS_MODE_32)
@@ -38,7 +38,7 @@ class Disassembler(DisassemblerBase):
     
 
     def IsExecutableAddr32(self, addr: int) -> bool:
-        for phdr in self.parser.header.program_headers :
+        for phdr in self.parser.parser.header.program_headers :
             if phdr.type != Elf.PhType.load :
                 continue
 
@@ -51,7 +51,7 @@ class Disassembler(DisassemblerBase):
         if self.md._mode == CS_MODE_32:
             return self.IsExecutableAddr32(addr)
         
-        for phdr in self.parser.header.program_headers :
+        for phdr in self.parser.parser.header.program_headers :
             if phdr.type != Elf.PhType.load :
                 continue
 
@@ -71,7 +71,7 @@ class Disassembler(DisassemblerBase):
     # Find the distance of the current address from the section_entry.
     def DistanceOffset(self, addr):
         idx, offset = self.AddrSectionInfo(addr)
-        return idx, (self.parser.header.section_headers[idx].ofs_body + offset)
+        return idx, (self.parser.parser.header.section_headers[idx].ofs_body + offset)
 
     def GetCode(self, offset: int)-> bytearray:
         #exception:  offset + 0x10 => executable X
@@ -86,7 +86,7 @@ class Disassembler(DisassemblerBase):
 
     def IsPltFunc(self, address:int):
         idx = self.section_idx['.plt']
-        plt_entry = self.parser.header.section_headers[idx]
+        plt_entry = self.parser.parser.header.section_headers[idx]
         plt_start = plt_entry.addr
         plt_end = plt_start + plt_entry.len_body
 
@@ -97,8 +97,10 @@ class Disassembler(DisassemblerBase):
         for operand in insn.operands :
             if operand.type == CS_OP_IMM :
                 if self.IsPltFunc(operand.imm) == False:
-                    return operand.imm
-        return 0
+                    return False, operand.imm
+                else :
+                    return True, operand.imm
+        return False, 0
 
     def FindBlockEntry(self, address: int):
         for basicblock in self.basicblocks:
