@@ -11,7 +11,7 @@ def main(arg: ParamSpecArgs):
 
     function = parse.FunctionList()
     
-    for fname, address in function.items():
+    for _, address in function.items():
         if disasm.IsExecutableAddr(address):
             if disasm.isVisit(address) :
                 continue
@@ -20,19 +20,19 @@ def main(arg: ParamSpecArgs):
 
     disassembler.BuildControlFlow(disasm)
 
-    print(disassembler.CanReachable(disasm, 0x40120e)) #True
-    print(disassembler.CanReachable(disasm, 0x40120e)) #True
-    print(disassembler.CanReachable(disasm, 0x401000)) #True
-    print(disassembler.CanReachable(disasm, 0x40121b + 0x110)) #None
 
-    
-    for block in disasm.basicblocks:
-        print("entry : 0x%x" %(block.entry))
-        block.PrintCode()
-        for idx, next in enumerate(block.next):
-            print("\t%d: 0x%x" %(idx, next))
-        print()
-    
+    print(disassembler.CanReachable(disasm, function['_start'], 0x40120e)) #None
+    print(disassembler.CanReachable(disasm, function['main'], 0x40120e)) #True
+    print(disassembler.CanReachable(disasm, function['main'], 0x4011fd)) #True
+
+    dest = 0x4011a5
+    path = list()
+    disassembler.TraceControlFlow(disasm, function['main'], dest, path)
+    for controlflow in disasm.ControlFlow:
+        for address in controlflow:
+            print("0x%x" %(address), end=' -> ')
+        print("0x%x" %(dest))
+
     
 
     '''
