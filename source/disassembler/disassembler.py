@@ -84,10 +84,6 @@ class Disassembler(DisassemblerBase):
         insn = self.md.disasm(code, self.ProgramCounter, count=0x1).__next__()
         return insn
 
-    def ReadLines(self, code: bytearray, addr: int, count: int):
-        insn = self.md.disasm(code, addr, count=count)
-        return insn
-
     def IsPltFunc(self, address:int):
         idx = self.section_idx['.plt']
         plt_entry = self.parser.header.section_headers[idx]
