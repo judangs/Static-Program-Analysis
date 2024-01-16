@@ -7,7 +7,7 @@ from typing import ParamSpecArgs
 
 def main(arg: ParamSpecArgs):
     parse = parser.ElfParser(arg.file)
-    disasm = disassembler.Disassembler(parse._io, parse.parser, parse.section_idx, parse.section_addr)
+    disasm = disassembler.Disassembler(parse._io, parse, parse.section_idx, parse.section_addr)
 
     function = parse.FunctionList()
     
@@ -15,16 +15,15 @@ def main(arg: ParamSpecArgs):
         if disasm.IsExecutableAddr(address):
             if disasm.isVisit(address) :
                 continue
-            #disassembler.RecursiveDisasm(disasm, address)
-            disassembler.LinearSweepDisasm(disasm, address)
+            disassembler.RecursiveDisasm(disasm, address)
+            #disassembler.LinearSweepDisasm(disasm, address)
 
-    disassembler.BuildControlFlow(disasm)
-
+    disassembler.BuildControlFlow(disasm)  
+    disasm.printBlock()
     print(disassembler.CanReachable(disasm, 0x40120e)) #True
     print(disassembler.CanReachable(disasm, 0x40120e)) #True
     print(disassembler.CanReachable(disasm, 0x401000)) #True
     print(disassembler.CanReachable(disasm, 0x40121b + 0x110)) #None
-
     
     for block in disasm.basicblocks:
         print("entry : 0x%x" %(block.entry))
