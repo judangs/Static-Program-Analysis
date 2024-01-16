@@ -32,9 +32,9 @@ class BasicBlock:
     def PrintCode(self):
         for instruction in self.instructions:
             if hasattr(instruction,'plt'):
-                print("%s : 0x%x:\t%s\tplt@%s" %(self.name, instruction.address, instruction.mnemonic, instruction.plt))
+                print("0x%x:\t%s\tplt@%s" %( instruction.address, instruction.mnemonic, instruction.plt))
             else:
-                print("%s : 0x%x:\t%s\t%s" %(self.name, instruction.address, instruction.mnemonic, instruction.op_str))
+                print("0x%x:\t%s\t%s" %(instruction.address, instruction.mnemonic, instruction.op_str))
 
     def AddFlowAddr(self, address):
         self.next.append(address)

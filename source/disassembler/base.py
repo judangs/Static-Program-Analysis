@@ -35,9 +35,8 @@ class DisassemblerBase(ABC):
         
     @classmethod
     def IsConditionalJump(self, insn: CsInsn):
-        for insn in CsInsn:
-            conditional_jumps = ['je', 'jne', 'jl', 'jle', 'jg', 'jge', 'jb', 'jbe', 'ja', 'jae']
-            return insn.mnemonic in conditional_jumps
+        conditional_jumps = ['je', 'jne', 'jl', 'jle', 'jg', 'jge', 'jb', 'jbe', 'ja', 'jae']
+        return insn.mnemonic in conditional_jumps
     @classmethod
     def IsUnconditionalJump(cls, insn: CsInsn):
         unconditional_jumps = ['jmp', 'jmpq']
@@ -169,7 +168,7 @@ def ProcessBranch(self, insn: CsInsn, Currentbb: BasicBlock):
     if branch_addr in [CS_OP_IMM, CS_OP_INVALID]:
         return
 
-    if self.IsUnconditionalBranch(insn):
+    if self.IsUnconditionalJump(insn):
         Currentbb.AddFlowAddr(branch_addr)
     elif self.IsConditionalJump(insn):
         Currentbb.AddFlowAddr(branch_addr)
@@ -245,9 +244,9 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
 
         if disasm.IsConditionalJump(insn):
             ProcessBranch(disasm, insn, Currentbb)
-        elif  disasm.IsUnconditionalJump(insn):
-            disasm.ProcessUnconditionalBranch(insn, Currentbb)
-            break
+        # elif  disasm.IsUnconditionalBranch(insn):
+        #     disasm.ProcessUnconditionalBranch(insn, Currentbb)
+        #     break
             
         disasm.ProgramCounter += insn.size
 
@@ -278,7 +277,6 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
             if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
                 continue
 
-            branch_addr = disasm.BranchAddr(insn)
 
             if branch_addr not in [CS_OP_IMM, CS_OP_INVALID]:
                 Currentbb.AddFlowAddr(branch_addr)
@@ -307,6 +305,8 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
             else:
                 # prevent block duplicate
                 Nextbb = disasm.FindBlockEntry(branch_addr)
+                if not Nextbb:
+                    continue
                 Nextbb.AddFlowAddr(disasm.ProgramCounter)
 
                 Currentbb = BasicBlock(disasm.ProgramCounter)
