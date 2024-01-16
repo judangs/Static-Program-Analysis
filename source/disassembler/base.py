@@ -33,6 +33,16 @@ class DisassemblerBase(ABC):
         self.section_addr = section_addr
         self.io = io
         
+    @classmethod
+    def IsConditionalJump(self, insn: CsInsn):
+        for insn in CsInsn:
+            conditional_jumps = ['je', 'jne', 'jl', 'jle', 'jg', 'jge', 'jb', 'jbe', 'ja', 'jae']
+            return insn.mnemonic in conditional_jumps
+    @classmethod
+    def IsUnconditionalJump(cls, insn: CsInsn):
+        unconditional_jumps = ['jmp', 'jmpq']
+        return insn.mnemonic in unconditional_jumps
+
 
     @abstractmethod
     def BranchAddr(self, insn: CsInsn):
@@ -154,6 +164,16 @@ def CanReachableAddress(disasm: DisassemblerBase, address: int) :
                 current = NodeList.popleft()
             else:
                 break
+def ProcessBranch(self, insn: CsInsn, Currentbb: BasicBlock):
+    branch_addr = self.BranchAddr(insn)
+    if branch_addr in [CS_OP_IMM, CS_OP_INVALID]:
+        return
+
+    if self.IsUnconditionalBranch(insn):
+        Currentbb.AddFlowAddr(branch_addr)
+    elif self.IsConditionalJump(insn):
+        Currentbb.AddFlowAddr(branch_addr)
+        Currentbb.AddFlowAddr(self.ProgramCounter + insn.size)
 
 
 def CanReachable(disasm: DisassemblerBase, start: int, dest: int):
@@ -222,6 +242,13 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
     while disasm.ProgramCounter >= PC_INVALID:
         insn = disasm.ReadLine()
         Currentbb.AddInsn(insn)
+
+        if disasm.IsConditionalJump(insn):
+            ProcessBranch(disasm, insn, Currentbb)
+        elif  disasm.IsUnconditionalJump(insn):
+            disasm.ProcessUnconditionalBranch(insn, Currentbb)
+            break
+            
         disasm.ProgramCounter += insn.size
 
         #instruction is invalid or ret
@@ -251,7 +278,15 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
             if branch_addr == CS_OP_IMM or branch_addr == CS_OP_INVALID:
                 continue
 
+            branch_addr = disasm.BranchAddr(insn)
 
+            if branch_addr not in [CS_OP_IMM, CS_OP_INVALID]:
+                Currentbb.AddFlowAddr(branch_addr)
+            # 조건부 점프일 경우, 현재 PC의 다음 주소도 흐름에 추가
+                if disasm.IsConditionalJump(insn):
+                    Currentbb.AddFlowAddr(disasm.ProgramCounter + insn.size)
+                  
+            '''
             #flow : jmp addr(unconditional jmp type)
             Currentbb.AddFlowAddr(branch_addr)
             #flow : jmp addr(condition jmp type)
@@ -259,7 +294,8 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
 
             #add basicblock
             disasm.basicblocks.append(Currentbb)
-
+            '''
+            
             if disasm.isVisit(branch_addr) == False:
                 Currentbb = BasicBlock(branch_addr)
                 disasm.visitBranch.add(branch_addr)
