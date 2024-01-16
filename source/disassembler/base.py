@@ -29,7 +29,17 @@ class DisassemblerBase(ABC):
         self.parser = parser
         self.section_idx = section_idx
         self.section_addr = section_addr
-        
+    
+    @classmethod
+    def IsConditionalJump(self, insn: CsInsn):
+        for insn in CsInsn:
+            conditional_jumps = ['je', 'jne', 'jl', 'jle', 'jg', 'jge', 'jb', 'jbe', 'ja', 'jae']
+            if insn.mnemonic in conditional_jumps:
+                return 0
+            else:
+                return 1
+    
+    
 
     @abstractmethod
     def BranchAddr(self, insn: CsInsn):
@@ -126,6 +136,16 @@ def CanReachableAddress(disasm: DisassemblerBase, address: int) :
                 current = NodeList.popleft()
             else:
                 break
+def ProcessBranch(self, insn: CsInsn, Currentbb: BasicBlock):
+    branch_addr = self.BranchAddr(insn)
+    if branch_addr in [CS_OP_IMM, CS_OP_INVALID]:
+        return
+
+    if self.IsConditionalJump(insn)==1:
+        Currentbb.AddFlowAddr(branch_addr)
+    elif self.IsConditionalJump(insn)==0:
+        Currentbb.AddFlowAddr(branch_addr)
+        Currentbb.AddFlowAddr(self.ProgramCounter + insn.size)
 
 
 def CanReachable(disasm: DisassemblerBase, start: int, dest: int):
@@ -195,6 +215,9 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
         insn = disasm.ReadLine()
         Currentbb.AddInsn(insn)
 
+        if disasm.IsConditionalJump(insn):
+            ProcessBranch(disasm, insn, Currentbb)
+        
         disasm.ProgramCounter += insn.size
 
         #instruction is invalid or ret
