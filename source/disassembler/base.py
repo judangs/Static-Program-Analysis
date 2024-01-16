@@ -21,6 +21,7 @@ class DisassemblerBase(ABC):
     visitBranch: Set[int] = set()
     retStack: Deque[int] = deque()
     basicblocks:List[BasicBlock] = list()
+    ControlFlow: List[List[int]] = list()
 
     ProgramCounter:int = PC_INVALID
 
@@ -110,7 +111,7 @@ def BuildControlFlow(disasm:DisassemblerBase) :
             else:
                 break
 
-def CanReachable(disasm:DisassemblerBase, address: int) :
+def CanReachableAddress(disasm: DisassemblerBase, address: int) :
     
     NodeList: Deque[BasicBlock] = deque()
     visit: List[int] = list()
@@ -136,7 +137,6 @@ def CanReachable(disasm:DisassemblerBase, address: int) :
                 current = NodeList.popleft()
             else:
                 break
-        
 def ProcessBranch(self, insn: CsInsn, Currentbb: BasicBlock):
     branch_addr = self.BranchAddr(insn)
     if branch_addr in [CS_OP_IMM, CS_OP_INVALID]:
@@ -149,12 +149,56 @@ def ProcessBranch(self, insn: CsInsn, Currentbb: BasicBlock):
         Currentbb.AddFlowAddr(self.ProgramCounter + insn.size)
 
 
-def TraceControlFlow(disasm: DisassemblerBase, dest: int):
-    pass
+def CanReachable(disasm: DisassemblerBase, start: int, dest: int):
+
+    NodeList: Deque[BasicBlock] = deque()
+    visit: List[int] = list()
+
+    current = disasm.FindBlockEntry(start)
+    visit.append(current.entry)
+
+    # while current.successors -> if entry block : ret (error)
+    while True:
+        for next in current.successors:
+            if next.entry in visit:
+                continue
+            
+            if next.entry <= dest and dest <= next.entry + next.size:
+                return True
+            else:
+                if next.entry not in visit:
+                    NodeList.append(next)
+                    visit.append(next.entry)
+
+        if NodeList:
+            current = NodeList.popleft()
+        else:
+            break
 
 
-def TraceControlFlow(disasm: DisassemblerBase, start:int, dest: int):
-    pass
+
+def TraceControlFlow(disasm: DisassemblerBase, start: int, dest: int, path: List[int]):
+    #Invalid address or Cannot
+    if CanReachableAddress(disasm, dest) == "None" or CanReachable(disasm, start, dest) == "None":
+        return False
+    
+    current_path = path
+    current_path.append(start)
+    print(current_path)
+    currentbb = disasm.FindBlockEntry(start)
+
+    if currentbb.entry <= dest and dest <= currentbb.entry + currentbb.size:
+        disasm.ControlFlow.append(current_path)
+        return True
+
+    for basicblock in currentbb.successors:
+        if basicblock.entry in path:
+            continue
+
+        if TraceControlFlow(disasm, basicblock.entry, dest, current_path) == True:
+            return True
+            
+
 
 def PrintAssembleFlow(disasm: DisassemblerBase, idx: int):
     pass
@@ -202,12 +246,12 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
             # 조건부 점프일 경우, 현재 PC의 다음 주소도 흐름에 추가
                 if disasm.IsConditionalJump(insn):
                     Currentbb.AddFlowAddr(disasm.ProgramCounter + insn.size)
-
+                  
             '''
             #flow : jmp addr(unconditional jmp type)
             Currentbb.AddFlowAddr(branch_addr)
             #flow : jmp addr(condition jmp type)
-            Currentbb.AddFlowAddr(disasm.ProgramCounter)
+            Currentbb.AddFlowAddr(disasm.ProgramCounter) 
 
             #add basicblock
             disasm.basicblocks.append(Currentbb)
@@ -222,6 +266,10 @@ def RecursiveDisasm(disasm: DisassemblerBase, branch_start_addr: int) :
                 RecursiveDisasm(disasm, disasm.ProgramCounter)
             
             else:
+                # prevent block duplicate
+                Nextbb = disasm.FindBlockEntry(branch_addr)
+                Nextbb.AddFlowAddr(disasm.ProgramCounter)
+
                 Currentbb = BasicBlock(disasm.ProgramCounter)
                 
 
