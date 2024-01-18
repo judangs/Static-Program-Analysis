@@ -16,18 +16,17 @@ def main(arg: ParamSpecArgs):
         if disasm.IsExecutableAddr(address):
             if disasm.isVisit(address) :
                 continue
-            #disassembler.RecursiveDisasm(disasm, address)
-            disassembler.LinearSweepDisasm(disasm, address)
+            disassembler.RecursiveDisasm(disasm, address)
+            #disassembler.LinearSweepDisasm(disasm, address)
 
     disassembler.BuildControlFlow(disasm)
 
 
-    #analyzer handler
+    #analyzer handler (testing)
     while True:
         print('(handler) ', end='')
         user_input = input()
 
-        #(handler) testing.
         if user_input.startswith("trace list"):
             if not disasm.ControlFlow:
                 continue
