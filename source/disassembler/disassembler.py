@@ -118,8 +118,6 @@ class Disassembler(DisassemblerBase):
         self.ProgramCounter += insn.size
         insn = self.ReadLine()
 
-        print("0x%x:\t%s\t%s" %(insn.address, insn.mnemonic, insn.op_str))
-
         self.ProgramCounter = self.retStack.pop()
 
         if insn.mnemonic == "push":
